@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  # ── MySQL Database ───────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: trax_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Reda2001@
+      MYSQL_DATABASE: trax
+      MYSQL_USER: reda
+      MYSQL_PASSWORD: Reda2001@
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "reda", "-pReda2001@"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trax_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://reda:Reda2001%40@db:3306/trax
+      SECRET_KEY: super-secret-256bit-key-change-in-production
+      FRONTEND_URL: http://localhost:3000
+      DEBUG: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app   # hot-reload in dev
+
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trax_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # ── DB Seeder (runs once then exits) ─────────────────────────────────────────
+  seeder:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trax_seeder
+    command: python -m app.db.seed
+    environment:
+      DATABASE_URL: mysql+pymysql://reda:Reda2001%40@db:3306/trax
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  mysql_data:
