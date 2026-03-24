@@ -63,7 +63,7 @@ services:
     container_name: trax_seeder
     command: python -m app.db.seed
     environment:
-      DATABASE_URL: mysql+pymysql://reda:Reda2001%40@db:3306/trax
+      DATABASE_URL: mysql+pymysql://reda:#@db:3306/trax
     depends_on:
       db:
         condition: service_healthy
