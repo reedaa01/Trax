@@ -7,16 +7,16 @@ services:
     container_name: trax_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: Reda2001@
+      MYSQL_ROOT_PASSWORD: #
       MYSQL_DATABASE: trax
       MYSQL_USER: reda
-      MYSQL_PASSWORD: Reda2001@
+      MYSQL_PASSWORD: #
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "reda", "-pReda2001@"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "reda", "-p#"]
       interval: 10s
       timeout: 5s
       retries: 5
