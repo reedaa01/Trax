@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system deps for psycopg2
+# PyMySQL is pure-Python — no C system headers needed.
+# Only install build-essential if you ever add a C-extension driver.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+    curl && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -14,5 +15,6 @@ COPY . .
 # Expose FastAPI port
 EXPOSE 8000
 
-# Start with uvicorn; auto-reload for development
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Production: no --reload. For local dev override with:
+#   command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
