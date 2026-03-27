@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Required for the Docker multi-stage build: copies a self-contained
+  // Node server into .next/standalone so the runner image can use `node server.js`
+  output: 'standalone',
   async rewrites() {
     return [
       {
