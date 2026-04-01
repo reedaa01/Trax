@@ -42,6 +42,7 @@ backend/ml/*.pkl
 
 # Private keys & certificates — never commit secrets
 *.pem
+*.ppk
 *.key
 *.p12
 *.pfx
