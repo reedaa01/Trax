@@ -1,6 +1,8 @@
 services:
-  # -- MySQL Database ----------------------------------------------------------
+  # -- Local MySQL (dev only) --------------------------------------------------
+  # On EC2 with AWS RDS, skip this with: docker compose --profile prod up
   db:
+    profiles: [dev]
     image: mysql:8.0
     container_name: trax_db
     restart: unless-stopped
@@ -35,9 +37,6 @@ services:
       DEBUG: ${DEBUG:-false}
     ports:
       - '8000:8000'
-    depends_on:
-      db:
-        condition: service_healthy
 
   # -- Next.js Frontend --------------------------------------------------------
   frontend:
@@ -45,18 +44,21 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://backend:8000
+        # Build-time: Next.js server-side calls go through Docker network
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
     container_name: trax_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Runtime: browser calls go to the public EC2 IP
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
       - '3000:3000'
     depends_on:
       - backend
 
-  # -- DB Seeder (runs once then exits) ----------------------------------------
+  # -- DB Seeder (dev only, runs once then exits) -------------------------------
   seeder:
+    profiles: [dev]
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -64,9 +66,6 @@ services:
     command: python -m app.db.seed
     environment:
       DATABASE_URL: ${DATABASE_URL}
-    depends_on:
-      db:
-        condition: service_healthy
     restart: 'no'
 
 volumes:
