@@ -5,6 +5,7 @@
       "label": "Frontend: dev server",
       "type": "shell",
       "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
       "group": "build",
       "isBackground": true,
       "problemMatcher": ["$tsc"],
@@ -14,6 +15,7 @@
       "label": "Frontend: build",
       "type": "shell",
       "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": ["$tsc"],
       "presentation": { "reveal": "always", "panel": "dedicated" }
@@ -36,24 +38,10 @@
       "presentation": { "reveal": "always" }
     },
     {
-      "label": "Docker: up (full stack)",
-      "type": "shell",
-      "command": "docker compose up --build",
-      "isBackground": true,
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
-      "label": "Docker: down",
-      "type": "shell",
-      "command": "docker compose down",
-      "problemMatcher": [],
-      "presentation": { "reveal": "always" }
-    },
-    {
       "label": "Type check",
       "type": "shell",
       "command": "npx tsc --noEmit",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
       "group": "test",
       "problemMatcher": ["$tsc"],
       "presentation": { "reveal": "always" }
