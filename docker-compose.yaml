@@ -11,9 +11,10 @@ services :
     ports:
       - "8000:8000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
-      DATABASE_URL: mysql://traxuser:traxpassword@mysql:3306/traxdb
+      DATABASE_URL: mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb
   mysql: 
     image: mysql:latest
     environment:
@@ -24,7 +25,12 @@ services :
     ports:
       - "3306:3306" 
     volumes:
-      - mysql-data:/var/lib/mysql  
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "traxuser", "-ptraxpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 volumes:
   mysql-data:
 
