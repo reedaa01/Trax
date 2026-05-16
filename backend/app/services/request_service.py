@@ -161,11 +161,12 @@ def client_confirm_delivery(
     if req.status != RequestStatus.in_progress:
         raise HTTPException(status_code=400, detail="Driver must mark arrived first")
     req.status = RequestStatus.completed
-    # Free up the driver
+    # Free up the driver and increment their job counter
     if req.driver_id:
         driver = db.query(DriverProfile).filter(DriverProfile.id == req.driver_id).first()
         if driver:
             driver.is_available = True
+            driver.total_jobs = (driver.total_jobs or 0) + 1
     db.commit()
     return _reload(db, req)
 

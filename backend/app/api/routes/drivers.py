@@ -1,10 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.core.security import require_role, get_current_user
 from app.models.user import User
+from app.models.request import TransportRequest, RequestStatus
 from app.schemas.driver import DriverProfileOut, DriverProfileUpdate, AvailabilityUpdate
 from app.schemas.request import TransportRequestOut
 from app.services import driver_service, request_service
@@ -67,3 +68,24 @@ def get_incoming_requests(
 ):
     profile = driver_service.get_driver_profile(db, current_user)
     return request_service.get_driver_incoming(db, profile)
+
+
+@router.get("/{driver_id}/reviews", response_model=List[TransportRequestOut])
+def get_driver_reviews(
+    driver_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return completed, reviewed jobs for a driver — visible to any authenticated user."""
+    reviews = (
+        db.query(TransportRequest)
+        .filter(
+            TransportRequest.driver_id == driver_id,
+            TransportRequest.status == RequestStatus.completed,
+            TransportRequest.review_rating.isnot(None),
+        )
+        .order_by(TransportRequest.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    return reviews

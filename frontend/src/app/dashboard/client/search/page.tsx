@@ -8,8 +8,9 @@ import dynamic from 'next/dynamic';
 import {
   Search, MapPin, Calendar, Loader2,
   Truck, CheckCircle, Weight, Navigation, Building2,
+  User, X, Phone, Star, Briefcase, Package,
 } from 'lucide-react';
-import { searchService, requestService } from '@/lib/services';
+import { searchService, requestService, driverService } from '@/lib/services';
 import { DriverSearchResult, VehicleType, SearchParams } from '@/types';
 import VehicleBadge from '@/components/VehicleBadge';
 import RatingStars from '@/components/RatingStars';
@@ -36,6 +37,28 @@ export default function SearchPage() {
   const [requesting,   setRequesting]   = useState<number | null>(null);
   const [success,      setSuccess]      = useState<number | null>(null);
   const [searchData,   setSearchData]   = useState<SearchFormValues | null>(null);
+  const [profileModal, setProfileModal] = useState<DriverSearchResult | null>(null);
+  const [modalReviews,  setModalReviews]  = useState<TransportRequest[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  const openProfile = async (r: DriverSearchResult) => {
+    setProfileModal(r);
+    setModalReviews([]);
+    setReviewsLoading(true);
+    try {
+      const reviews = await driverService.getDriverReviews(r.driver.id);
+      setModalReviews(reviews);
+    } catch {
+      // reviews failed silently
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const closeProfile = () => {
+    setProfileModal(null);
+    setModalReviews([]);
+  };
   const [mapSelection, setMapSelection] = useState<MapSelection>({
     departure: null, destination: null, distanceKm: null,
   });
@@ -252,6 +275,162 @@ export default function SearchPage() {
             </div>
           )}
 
+          {/* Driver Profile Modal */}
+          {profileModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              onClick={closeProfile}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal header */}
+                <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+                  <h3 className="font-semibold text-gray-900 text-lg">Driver Profile</h3>
+                  <button onClick={closeProfile} className="text-gray-400 hover:text-gray-600">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Modal body */}
+                <div className="p-5 space-y-5">
+                  {/* Avatar + name + rating */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-2xl shrink-0">
+                      {profileModal.driver.full_name[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{profileModal.driver.full_name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <RatingStars rating={profileModal.driver.rating} />
+                        <span className="text-sm text-gray-500">({profileModal.driver.rating.toFixed(1)})</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-blue-50 rounded-xl p-3">
+                      <p className="text-xl font-bold text-blue-700">{profileModal.driver.total_jobs}</p>
+                      <p className="text-xs text-blue-600 mt-0.5">Total Jobs</p>
+                    </div>
+                    <div className="bg-emerald-50 rounded-xl p-3">
+                      <p className="text-xl font-bold text-emerald-700">{profileModal.estimated_distance_km.toFixed(0)} km</p>
+                      <p className="text-xs text-emerald-600 mt-0.5">Distance</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-xl p-3">
+                      <p className="text-xl font-bold text-amber-700">{(profileModal.recommendation_score * 100).toFixed(0)}%</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Match</p>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                      <span className="flex items-center gap-2 text-gray-500"><Briefcase className="h-4 w-4" /> Vehicle</span>
+                      <div className="flex items-center gap-2">
+                        <VehicleBadge type={profileModal.driver.vehicle_type} />
+                        <span className="text-gray-700 font-medium">{profileModal.driver.vehicle_plate}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                      <span className="flex items-center gap-2 text-gray-500"><Package className="h-4 w-4" /> Capacity</span>
+                      <span className="font-medium text-gray-700">{profileModal.driver.vehicle_capacity_tons} tons</span>
+                    </div>
+                    {profileModal.driver.city && (
+                      <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                        <span className="flex items-center gap-2 text-gray-500"><Building2 className="h-4 w-4" /> Based in</span>
+                        <span className="font-medium text-gray-700">{profileModal.driver.city}</span>
+                      </div>
+                    )}
+                    {profileModal.driver.phone && (
+                      <div className="flex items-center justify-between py-2">
+                        <span className="flex items-center gap-2 text-gray-500"><Phone className="h-4 w-4" /> Phone</span>
+                        <span className="font-medium text-gray-700">{profileModal.driver.phone}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price */}
+                  <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                    <span className="text-gray-600 text-sm">Estimated price for this route</span>
+                    <span className="text-2xl font-bold text-emerald-600">{profileModal.estimated_price.toFixed(0)} <span className="text-sm font-semibold">MAD</span></span>
+                  </div>
+
+                  {/* Reviews */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      Client Reviews
+                      {!reviewsLoading && (
+                        <span className="text-xs font-normal text-gray-400">({modalReviews.length})</span>
+                      )}
+                    </h4>
+                    {reviewsLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : modalReviews.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic text-center py-3">No reviews yet</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {modalReviews.map((rev) => (
+                          <div key={rev.id} className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-gray-500">
+                                {rev.departure_location} → {rev.destination}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-3 w-3 ${
+                                      i < Math.round(rev.review_rating!)
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-xs font-bold text-amber-700 ml-1">{rev.review_rating!.toFixed(1)}</span>
+                              </div>
+                            </div>
+                            {rev.review_comment && (
+                              <p className="text-xs text-gray-500 italic">&ldquo;{rev.review_comment}&rdquo;</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal footer */}
+                <div className="p-5 pt-0 flex gap-3">
+                  <button onClick={closeProfile} className="btn-secondary flex-1 justify-center">
+                    Close
+                  </button>
+                  {success === profileModal.driver.id ? (
+                    <span className="flex-1 flex items-center justify-center gap-1 text-emerald-600 font-medium text-sm">
+                      <CheckCircle className="h-4 w-4" /> Request Sent!
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => { sendRequest(profileModal); closeProfile(); }}
+                      disabled={requesting === profileModal.driver.id}
+                      className="btn-primary flex-1 justify-center gap-2"
+                    >
+                      {requesting === profileModal.driver.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <CheckCircle className="h-4 w-4" />}
+                      Send Request
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             {results.map((r) => (
               <div key={r.driver.id} className="card">
@@ -287,22 +466,31 @@ export default function SearchPage() {
                       <span className="text-sm font-semibold ml-1">MAD</span>
                     </div>
                     <p className="text-xs text-gray-400 mb-2">Est. price</p>
-                    {success === r.driver.id ? (
-                      <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
-                        <CheckCircle className="h-4 w-4" /> Sent!
-                      </span>
-                    ) : (
+                    <div className="flex flex-col gap-2 items-end">
                       <button
-                        onClick={() => sendRequest(r)}
-                        disabled={requesting === r.driver.id}
-                        className="btn-primary text-sm gap-2"
+                        onClick={() => openProfile(r)}
+                        className="btn-secondary text-sm gap-1.5"
                       >
-                        {requesting === r.driver.id && (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        )}
-                        Send Request
+                        <User className="h-3.5 w-3.5" />
+                        View Profile
                       </button>
-                    )}
+                      {success === r.driver.id ? (
+                        <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                          <CheckCircle className="h-4 w-4" /> Sent!
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => sendRequest(r)}
+                          disabled={requesting === r.driver.id}
+                          className="btn-primary text-sm gap-2"
+                        >
+                          {requesting === r.driver.id && (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          )}
+                          Send Request
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

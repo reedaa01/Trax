@@ -65,6 +65,11 @@ export const driverService = {
     const res = await api.get<TransportRequest[]>('/drivers/requests');
     return res.data;
   },
+
+  getDriverReviews: async (driverId: number): Promise<TransportRequest[]> => {
+    const res = await api.get<TransportRequest[]>(`/drivers/${driverId}/reviews`);
+    return res.data;
+  },
 };
 
 // ─── Transport Requests ───────────────────────────────────────────────────────

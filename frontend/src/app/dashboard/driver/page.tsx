@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { driverService } from '@/lib/services';
 import { DriverProfile, TransportRequest } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { Truck, Bell, CheckCircle2, Clock, ToggleLeft, ToggleRight, TrendingUp } from 'lucide-react';
+import { Truck, Bell, CheckCircle2, Clock, ToggleLeft, ToggleRight, TrendingUp, Star } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import RatingStars from '@/components/RatingStars';
 import VehicleBadge from '@/components/VehicleBadge';
@@ -15,6 +15,7 @@ export default function DriverDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [requests, setRequests] = useState<TransportRequest[]>([]);
+  const [jobs, setJobs] = useState<TransportRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
@@ -22,7 +23,9 @@ export default function DriverDashboard() {
     Promise.all([
       driverService.getProfile(),
       driverService.getIncomingRequests(),
-    ])      .then(([p, r]) => { setProfile(p); setRequests(r); })
+      driverService.getMyJobs(),
+    ])
+      .then(([p, r, j]) => { setProfile(p); setRequests(r); setJobs(j); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -42,6 +45,12 @@ export default function DriverDashboard() {
   if (loading) return <LoadingSpinner />;
 
   const pendingRequests = requests.filter((r) => r.status === 'pending');
+  const activeJobs = jobs.filter((j) => ['accepted', 'in_progress'].includes(j.status));
+  const completedJobs = jobs.filter((j) => j.status === 'completed');
+  const recentReviews = completedJobs
+    .filter((j) => j.review_rating)
+    .sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
+    .slice(0, 3);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -123,19 +132,64 @@ export default function DriverDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-brand-50 rounded-xl p-3">
-                <p className="text-2xl font-bold text-brand-700">{profile?.total_jobs ?? 0}</p>
-                <p className="text-xs text-brand-600 mt-0.5">Jobs Done</p>
+                <p className="text-2xl font-bold text-brand-700">{completedJobs.length}</p>
+                <p className="text-xs text-brand-600 mt-0.5">Completed</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-3">
                 <p className="text-2xl font-bold text-amber-700">{pendingRequests.length}</p>
                 <p className="text-xs text-amber-600 mt-0.5">Pending</p>
               </div>
+              <div className="bg-blue-50 rounded-xl p-3">
+                <p className="text-2xl font-bold text-blue-700">{activeJobs.length}</p>
+                <p className="text-xs text-blue-600 mt-0.5">Active</p>
+              </div>
+              <div className="bg-emerald-50 rounded-xl p-3">
+                <p className="text-2xl font-bold text-emerald-700">{profile?.total_jobs ?? 0}</p>
+                <p className="text-xs text-emerald-600 mt-0.5">Total Jobs</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Incoming Requests */}
-        <div className="lg:col-span-2">
+        {/* Right: Incoming Requests + Reviews */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Recent Reviews */}
+          {recentReviews.length > 0 && (
+            <div className="card">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+                <h2 className="font-semibold text-gray-900">Recent Reviews</h2>
+              </div>
+              <div className="space-y-3">
+                {recentReviews.map((j) => (
+                  <div key={j.id} className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-800">
+                        {j.departure_location} → {j.destination}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${
+                              i < Math.round(j.review_rating!)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs font-bold text-amber-700 ml-1">{j.review_rating!.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    {j.review_comment && (
+                      <p className="text-xs text-gray-500 italic">&ldquo;{j.review_comment}&rdquo;</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="card">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
@@ -173,6 +227,7 @@ export default function DriverDashboard() {
     </div>
   );
 }
+
 
 function RequestCard({ request: r }: { request: TransportRequest }) {
   return (
