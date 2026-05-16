@@ -11,7 +11,7 @@ import {
   User, X, Phone, Star, Briefcase, Package,
 } from 'lucide-react';
 import { searchService, requestService, driverService } from '@/lib/services';
-import { DriverSearchResult, VehicleType, SearchParams } from '@/types';
+import { DriverSearchResult, VehicleType, SearchParams, TransportRequest } from '@/types';
 import VehicleBadge from '@/components/VehicleBadge';
 import RatingStars from '@/components/RatingStars';
 import CityAutocomplete from '@/components/CityAutocomplete';
