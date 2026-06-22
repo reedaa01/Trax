@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "mysql+pymysql://reda:Reda2001%40@localhost:3306/trax"
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Ensure DATABASE_URL uses pymysql driver (Railway's MySQL.MYSQL_URL returns mysql:// without driver)
+        if self.DATABASE_URL.startswith("mysql://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
+
     # JWT
     SECRET_KEY: str = "change-me-in-production-use-256bit-random-key"
     ALGORITHM: str = "HS256"
