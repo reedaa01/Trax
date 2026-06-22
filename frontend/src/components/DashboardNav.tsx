@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Truck, LayoutDashboard, Search, ClipboardList,
-  Settings, LogOut, Bell, ChevronDown, Menu, X,
+  Settings, LogOut, Bell, ChevronDown, Menu, X, Users, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import clsx from 'clsx';
@@ -23,13 +23,23 @@ const driverNav = [
   { href: '/dashboard/driver/settings',  label: 'Settings',  icon: Settings },
 ];
 
+const adminNav = [
+  { href: '/dashboard/admin',          label: 'Overview',  icon: LayoutDashboard },
+  { href: '/dashboard/admin/users',    label: 'Users',     icon: Users },
+  { href: '/dashboard/admin/drivers',  label: 'Drivers',   icon: Truck },
+  { href: '/dashboard/admin/requests', label: 'Requests',  icon: ClipboardList },
+];
+
 export default function DashboardNav() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [menuOpen,   setMenuOpen]   = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const navItems = user?.role === 'driver' ? driverNav : clientNav;
+  const navItems =
+    user?.role === 'driver' ? driverNav :
+    user?.role === 'admin'  ? adminNav  :
+    clientNav;
 
   // Close drawer on route change
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
@@ -39,6 +49,16 @@ export default function DashboardNav() {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [drawerOpen]);
+
+  const roleBadge =
+    user?.role === 'driver' ? '🚛 Driver' :
+    user?.role === 'admin'  ? '🛡️ Admin'  :
+    '📦 Client';
+
+  const roleBadgeClass =
+    user?.role === 'driver' ? 'bg-amber-500/20 text-amber-400' :
+    user?.role === 'admin'  ? 'bg-red-500/20 text-red-400'     :
+    'bg-brand-500/20 text-brand-400';
 
   const NavContent = () => (
     <>
@@ -64,13 +84,8 @@ export default function DashboardNav() {
 
       {/* Role badge */}
       <div className="px-6 py-3 border-b border-gray-800">
-        <span className={clsx(
-          'badge text-xs',
-          user?.role === 'driver'
-            ? 'bg-amber-500/20 text-amber-400'
-            : 'bg-brand-500/20 text-brand-400',
-        )}>
-          {user?.role === 'driver' ? '🚛 Driver' : '📦 Client'}
+        <span className={clsx('badge text-xs', roleBadgeClass)}>
+          {roleBadge}
         </span>
       </div>
 

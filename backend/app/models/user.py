@@ -8,6 +8,7 @@ from app.db.session import Base
 class UserRole(str, enum.Enum):
     client = "client"
     driver = "driver"
+    admin  = "admin"
 
 
 class User(Base):

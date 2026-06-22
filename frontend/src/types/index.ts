@@ -1,5 +1,5 @@
 // ─── Auth ────────────────────────────────────────────────────────────────────
-export type UserRole = 'client' | 'driver';
+export type UserRole = 'client' | 'driver' | 'admin';
 
 export interface User {
   id: number;

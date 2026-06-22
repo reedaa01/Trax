@@ -26,16 +26,25 @@ def _reload(db: Session, req: TransportRequest) -> TransportRequest:
 
 
 def create_request(db: Session, data: TransportRequestCreate, client: User) -> TransportRequest:
-    from ml.predictor import predict_price
+    from ml.predictor import estimate_price_components, _approx_route_distance
 
-    price = predict_price(
-        distance_km=_approx_distance(
-            data.departure_lat, data.departure_lng,
-            data.destination_lat, data.destination_lng,
-        ),
+    route_distance_km = _approx_distance(
+        data.departure_lat,
+        data.departure_lng,
+        data.destination_lat,
+        data.destination_lng,
+    )
+    if route_distance_km <= 0:
+        route_distance_km = _approx_route_distance(data.departure_location, data.destination)
+
+    components = estimate_price_components(
+        distance_km=route_distance_km,
         vehicle_type=data.vehicle_type_required,
         load_weight_tons=data.load_weight_tons,
+        departure=data.departure_location,
+        destination=data.destination,
     )
+    price = components["estimated_price"]
 
     req = TransportRequest(
         client_id=client.id,
@@ -232,9 +241,9 @@ def submit_review(
 
 
 def _approx_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """Haversine distance in km. Falls back to 100 km when coords are (0,0)."""
+    """Haversine distance in km. Returns 0 when coords are missing/zero."""
     if lat1 == 0 and lng1 == 0 and lat2 == 0 and lng2 == 0:
-        return 100.0
+        return 0.0
     R = 6371
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)

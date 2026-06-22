@@ -61,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('trax_user', JSON.stringify(me));
       setToken(tokens.access_token);
       setUser(me);
-      router.push(me.role === 'driver' ? '/dashboard/driver' : '/dashboard/client');
+      if (me.role === 'driver') router.push('/dashboard/driver');
+      else if (me.role === 'admin') router.push('/dashboard/admin');
+      else router.push('/dashboard/client');
     },
     [router]
   );

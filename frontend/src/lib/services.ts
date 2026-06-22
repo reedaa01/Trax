@@ -138,3 +138,34 @@ export const statsService = {
     return res.data;
   },
 };
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+export const adminService = {
+  getStats: async () => {
+    const res = await api.get('/admin/stats');
+    return res.data;
+  },
+  getUsers: async (role?: string) => {
+    const res = await api.get('/admin/users', { params: role ? { role } : {} });
+    return res.data;
+  },
+  deleteUser: async (id: number) => {
+    await api.delete(`/admin/users/${id}`);
+  },
+  updateUserRole: async (id: number, role: string) => {
+    const res = await api.patch(`/admin/users/${id}/role`, { role });
+    return res.data;
+  },
+  getDrivers: async () => {
+    const res = await api.get('/admin/drivers');
+    return res.data;
+  },
+  toggleDriverAvailability: async (driverId: number) => {
+    const res = await api.patch(`/admin/drivers/${driverId}/toggle-availability`);
+    return res.data;
+  },
+  getRequests: async (status?: string) => {
+    const res = await api.get('/admin/requests', { params: status ? { status_filter: status } : {} });
+    return res.data;
+  },
+};

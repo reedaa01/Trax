@@ -121,6 +121,18 @@ def seed():
             )
             db.add(user)
 
+        # ── Super admin ───────────────────────────────────────────────────────
+        admin_email = "admin@trax.ma"
+        if not db.query(User).filter(User.email == admin_email).first():
+            admin = User(
+                email=admin_email,
+                full_name="Trax Admin",
+                phone="+212600000000",
+                hashed_pw=hash_password("Reda2001@Supmti"),
+                role=UserRole.admin,
+            )
+            db.add(admin)
+
         db.commit()
         print("Seed complete!")
     except Exception as e:

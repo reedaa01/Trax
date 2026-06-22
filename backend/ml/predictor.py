@@ -1,74 +1,68 @@
-"""
-ML Predictor Module
-===================
-1. predict_price  -- Ridge regression on synthetic freight pricing data.
-   Features: distance_km, load_weight_tons, vehicle_type (one-hot)
+"""Matching and pricing predictor.
 
-2. recommend_drivers -- Weighted score per driver:
-   score = 0.35*rating + 0.25*experience + 0.20*capacity_match + 0.20*proximity
-   Returns drivers sorted by score descending.
-
-Models are trained at import time on synthetic data (no .pkl files needed).
+This module provides deterministic scoring and pricing:
+- Better driver matching using city/geo proximity + capacity + quality
+- Transparent fare estimation with route, vehicle and load factors
 """
 import math
-import random
 from typing import List, Tuple
-
-import numpy as np
-from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-
-# --- Vehicle config -----------------------------------------------------------
 
 VEHICLE_TYPES = ["pickup", "van", "truck", "semi_truck", "flatbed"]
 
-# Rates in MAD per km — realistic Moroccan freight market
 VEHICLE_BASE_RATES = {
-    "pickup":     6.5,
-    "van":        9.0,
-    "truck":      12.0,
-    "semi_truck": 18.0,
-    "flatbed":    16.0,
+    "pickup": 4.2,
+    "van": 5.2,
+    "truck": 6.6,
+    "semi_truck": 8.8,
+    "flatbed": 7.8,
 }
 
-# --- Training data generation -------------------------------------------------
 
-def _generate_training_data(n: int = 2000) -> Tuple[np.ndarray, np.ndarray]:
-    rng = np.random.RandomState(42)
-    X, y = [], []
-    for _ in range(n):
-        distance = rng.uniform(10, 1500)          # Morocco max ~1 400 km end-to-end
-        weight   = rng.uniform(0.1, 30)
-        vtype    = rng.choice(VEHICLE_TYPES)
-        rate     = VEHICLE_BASE_RATES[vtype]
-        # Base fare 150 MAD + distance cost + weight surcharge (35 MAD/ton)
-        price    = max(150.0, 150.0 + distance * rate * 0.85 + weight * 35.0 + rng.normal(0, 80))
-        v_enc    = [1 if vtype == v else 0 for v in VEHICLE_TYPES]
-        X.append([distance, weight] + v_enc)
-        y.append(price)
-    return np.array(X), np.array(y)
+def estimate_price_components(
+    distance_km: float,
+    vehicle_type: str,
+    load_weight_tons: float,
+    departure: str | None = None,
+    destination: str | None = None,
+) -> dict:
+    """Estimate price and return detailed deterministic breakdown."""
+    d_km = max(float(distance_km or 0.0), 1.0)
+    load = max(float(load_weight_tons or 0.0), 0.1)
+    vtype = vehicle_type if vehicle_type in VEHICLE_BASE_RATES else "truck"
 
+    # Core components
+    base_fare = 80.0
+    distance_cost = d_km * VEHICLE_BASE_RATES[vtype]
+    weight_cost = _weight_surcharge(load, vtype)
 
-# --- Train at import time -----------------------------------------------------
+    # Surcharges
+    long_trip_surcharge = 0.0
+    if d_km > 450:
+        long_trip_surcharge = (d_km - 450) * 0.65
+    elif d_km > 250:
+        long_trip_surcharge = (d_km - 250) * 0.35
 
-_X, _y = _generate_training_data()
-price_model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("model",  Ridge(alpha=1.0)),
-])
-price_model.fit(_X, _y)
+    city_factor = _city_route_factor(departure, destination)
+    subtotal = (base_fare + distance_cost + weight_cost + long_trip_surcharge) * city_factor
 
-# --- Public API ---------------------------------------------------------------
+    # Operational margin kept explicit for transparency
+    service_fee = subtotal * 0.06
+    estimated_price = max(120.0, subtotal + service_fee)
+
+    return {
+        "estimated_price": round(estimated_price, 2),
+        "base_fare": round(base_fare, 2),
+        "distance_cost": round(distance_cost, 2),
+        "weight_surcharge": round(weight_cost, 2),
+        "long_trip_surcharge": round(long_trip_surcharge, 2),
+        "city_adjustment": round((city_factor - 1.0) * 100.0, 2),
+        "service_fee": round(service_fee, 2),
+    }
+
 
 def predict_price(distance_km: float, vehicle_type: str, load_weight_tons: float) -> float:
-    """Predict freight price in MAD using trained Ridge regression model."""
-    if vehicle_type not in VEHICLE_TYPES:
-        vehicle_type = "truck"
-    v_enc = [1 if vehicle_type == v else 0 for v in VEHICLE_TYPES]
-    features = np.array([[distance_km, load_weight_tons] + v_enc])
-    price = float(price_model.predict(features)[0])
-    return max(150.0, round(price, 2))
+    """Backward compatible simple price API."""
+    return estimate_price_components(distance_km, vehicle_type, load_weight_tons)["estimated_price"]
 
 
 def recommend_drivers(
@@ -92,7 +86,6 @@ def recommend_drivers(
     if not drivers:
         return []
 
-    # --- Route distance: use real coords if provided, else city-name lookup ---
     if distance_km and distance_km > 0:
         route_km = distance_km
     elif departure_lat and departure_lng and destination_lat and destination_lng:
@@ -110,22 +103,34 @@ def recommend_drivers(
     results = []
 
     for driver in drivers:
-        if driver.latitude and driver.longitude:
-            dist_km = _haversine(driver.latitude, driver.longitude, dep_coord[0], dep_coord[1])
-        else:
-            dist_km = random.uniform(5, 300)
+        city_distance_km = _driver_departure_distance_km(driver, dep_coord)
 
         rating_score = driver.rating / 5.0
-        exp_score    = min(driver.total_jobs / max_jobs, 1.0)
-        cap_score    = _capacity_score(driver.vehicle_capacity_tons, load_weight)
-        # Proximity within Morocco: 500 km covers the whole country end-to-end
-        dist_score   = max(0.0, 1.0 - (dist_km / 500.0))
+        exp_score = min(driver.total_jobs / max_jobs, 1.0)
+        cap_score = _capacity_score(driver.vehicle_capacity_tons, load_weight)
+        proximity_score = _proximity_score(city_distance_km)
+        city_affinity_score = _city_affinity(driver.city, departure)
 
-        score = (0.35 * rating_score + 0.25 * exp_score +
-                 0.20 * cap_score    + 0.20 * dist_score)
+        # Stronger geographic and city matching weights
+        score = (
+            0.30 * proximity_score
+            + 0.22 * city_affinity_score
+            + 0.20 * rating_score
+            + 0.18 * cap_score
+            + 0.10 * exp_score
+        )
 
         vtype = driver.vehicle_type.value if hasattr(driver.vehicle_type, "value") else str(driver.vehicle_type)
-        price = predict_price(route_km, vtype, load_weight)
+        price_data = estimate_price_components(
+            distance_km=route_km,
+            vehicle_type=vtype,
+            load_weight_tons=load_weight,
+            departure=departure,
+            destination=destination,
+        )
+        # Slight pickup premium for far-away drivers to reflect deadhead cost.
+        deadhead_factor = 1.0 + min(city_distance_km, 300.0) / 6000.0
+        price = round(price_data["estimated_price"] * deadhead_factor, 2)
 
         driver_out = DriverProfileOut(
             id=driver.id,
@@ -158,8 +163,90 @@ def recommend_drivers(
 def _capacity_score(capacity: float, load: float) -> float:
     if capacity < load:
         return 0.0
+    # Prefer reasonable headroom (not too tight, not too oversized)
     ratio = load / capacity
-    return ratio if ratio >= 0.5 else ratio * 0.8
+    if ratio >= 0.9:
+        return 0.75
+    if ratio >= 0.6:
+        return 1.0
+    if ratio >= 0.35:
+        return 0.85
+    return 0.7
+
+
+def _weight_surcharge(load: float, vehicle_type: str) -> float:
+    heavy_factor_by_vehicle = {
+        "pickup": 15.0,
+        "van": 18.0,
+        "truck": 22.0,
+        "semi_truck": 27.0,
+        "flatbed": 25.0,
+    }
+    factor = heavy_factor_by_vehicle.get(vehicle_type, 22.0)
+    if load <= 1.0:
+        return load * factor * 0.7
+    if load <= 5.0:
+        return (1.0 * factor * 0.7) + ((load - 1.0) * factor)
+    return (1.0 * factor * 0.7) + (4.0 * factor) + ((load - 5.0) * factor * 1.2)
+
+
+def _city_route_factor(departure: str | None, destination: str | None) -> float:
+    if not departure or not destination:
+        return 1.0
+    dep = departure.lower()
+    dest = destination.lower()
+    major_hubs = ("casablanca", "rabat", "tanger", "marrakech", "agadir", "fes")
+    dep_major = any(c in dep for c in major_hubs)
+    dest_major = any(c in dest for c in major_hubs)
+    if dep_major and dest_major:
+        return 1.04
+    if dep_major or dest_major:
+        return 1.02
+    return 1.0
+
+
+def _driver_departure_distance_km(driver, departure_coord: Tuple[float, float]) -> float:
+    if driver.latitude is not None and driver.longitude is not None:
+        return _haversine(driver.latitude, driver.longitude, departure_coord[0], departure_coord[1])
+    if driver.city:
+        c = _city_coord(driver.city)
+        return _haversine(c[0], c[1], departure_coord[0], departure_coord[1])
+    return 450.0
+
+
+def _proximity_score(distance_km: float) -> float:
+    # Strongly prefer drivers near departure city
+    if distance_km <= 20:
+        return 1.0
+    if distance_km <= 60:
+        return 0.9
+    if distance_km <= 120:
+        return 0.75
+    if distance_km <= 220:
+        return 0.55
+    if distance_km <= 350:
+        return 0.35
+    return 0.15
+
+
+def _city_affinity(driver_city: str | None, departure: str | None) -> float:
+    if not driver_city or not departure:
+        return 0.35
+    d = driver_city.lower().strip()
+    u = departure.lower().strip()
+    if d == u or d in u or u in d:
+        return 1.0
+
+    dc = _city_coord(driver_city)
+    uc = _city_coord(departure)
+    dist = _haversine(dc[0], dc[1], uc[0], uc[1])
+    if dist <= 40:
+        return 0.85
+    if dist <= 120:
+        return 0.65
+    if dist <= 250:
+        return 0.45
+    return 0.25
 
 
 def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -172,44 +259,36 @@ def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 CITY_COORDS: dict[str, Tuple[float, float]] = {
-    # Major Moroccan cities (lat, lng)
-    "casablanca":   (33.5731, -7.5898),
-    "rabat":        (34.0209, -6.8416),
-    "marrakech":    (31.6295, -7.9811),
-    "fès":          (34.0181, -5.0078),
-    "fes":          (34.0181, -5.0078),
-    "tanger":       (35.7595, -5.8340),
-    "tangier":      (35.7595, -5.8340),
-    "agadir":       (30.4278, -9.5981),
-    "meknès":       (33.8935, -5.5473),
-    "meknes":       (33.8935, -5.5473),
-    "oujda":        (34.6814, -1.9086),
-    "kenitra":      (34.2610, -6.5802),
-    "tétouan":      (35.5785, -5.3684),
-    "tetouan":      (35.5785, -5.3684),
-    "safi":         (32.2994, -9.2372),
-    "mohammedia":   (33.6861, -7.3836),
-    "khouribga":    (32.8811, -6.9063),
-    "el jadida":    (33.2316, -8.5007),
-    "béni mellal":  (32.3373, -6.3498),
-    "beni mellal":  (32.3373, -6.3498),
-    "nador":        (35.1740, -2.9287),
-    "taza":         (34.2100, -4.0100),
-    "settat":       (33.0011, -7.6197),
-    "guelmim":      (28.9870, -10.0574),
-    "laâyoune":     (27.1536, -13.2033),
-    "laayoune":     (27.1536, -13.2033),
-    "dakhla":       (23.6848, -15.9572),
-    "ouarzazate":   (30.9335, -6.9370),
-    "errachidia":   (31.9314, -4.4249),
-    "zagora":       (30.3300, -5.8380),
-    "ifrane":       (33.5228, -5.1128),
-    "al hoceïma":   (35.2517, -3.9372),
-    "al hoceima":   (35.2517, -3.9372),
-    "larache":      (35.1932, -6.1561),
-    "essaouira":    (31.5084, -9.7595),
-    # Fallback: geographic centre of Morocco
-    "default":      (31.7917, -7.0926),
+    "casablanca": (33.5731, -7.5898),
+    "rabat": (34.0209, -6.8416),
+    "marrakech": (31.6295, -7.9811),
+    "fes": (34.0181, -5.0078),
+    "tanger": (35.7595, -5.8340),
+    "tangier": (35.7595, -5.8340),
+    "agadir": (30.4278, -9.5981),
+    "meknes": (33.8935, -5.5473),
+    "oujda": (34.6814, -1.9086),
+    "kenitra": (34.2610, -6.5802),
+    "tetouan": (35.5785, -5.3684),
+    "safi": (32.2994, -9.2372),
+    "mohammedia": (33.6861, -7.3836),
+    "khouribga": (32.8811, -6.9063),
+    "el jadida": (33.2316, -8.5007),
+    "beni mellal": (32.3373, -6.3498),
+    "nador": (35.1740, -2.9287),
+    "taza": (34.2100, -4.0100),
+    "settat": (33.0011, -7.6197),
+    "guelmim": (28.9870, -10.0574),
+    "laayoune": (27.1536, -13.2033),
+    "dakhla": (23.6848, -15.9572),
+    "ouarzazate": (30.9335, -6.9370),
+    "errachidia": (31.9314, -4.4249),
+    "zagora": (30.3300, -5.8380),
+    "ifrane": (33.5228, -5.1128),
+    "al hoceima": (35.2517, -3.9372),
+    "larache": (35.1932, -6.1561),
+    "essaouira": (31.5084, -9.7595),
+    "default": (31.7917, -7.0926),
 }
 
 

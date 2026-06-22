@@ -258,6 +258,49 @@ Open the Command Palette (`Ctrl+Shift+P`) → **Tasks: Run Task**:
 1. **Register** as a **client** at `/auth/register`
 2. Go to **Find Transport** → enter cities, pick a date, hit **Search**
 3. Review ranked drivers with estimated prices and match scores
+
+---
+
+## 🚂 Deploy on Railway (Docker)
+
+This repo is ready for Railway using Dockerfiles in each service folder.
+
+### 1. Create Railway services
+
+1. Create a new Railway project.
+2. Add a service from this repo for backend:
+	 - Root directory: `backend`
+	 - Railway config: `backend/railway.json`
+3. Add another service for frontend:
+	 - Root directory: `frontend`
+	 - Railway config: `frontend/railway.json`
+4. Add a MySQL database plugin/service in Railway.
+
+### 2. Set backend variables (Railway UI)
+
+Use values from `backend/.env.railway.example`:
+
+- `DATABASE_URL` (from Railway MySQL, PyMySQL format)
+- `SECRET_KEY`
+- `ALGORITHM=HS256`
+- `ACCESS_TOKEN_EXPIRE_MINUTES=1440`
+- `FRONTEND_URL` (your Railway frontend domain)
+- `DEBUG=false`
+
+### 3. Set frontend variables (Railway UI)
+
+Use values from `frontend/.env.railway.example`:
+
+- `NEXT_PUBLIC_API_URL` = backend Railway domain (e.g. `https://your-backend.up.railway.app`)
+
+### 4. Important notes
+
+- Railway injects `PORT` automatically; Dockerfiles already use it.
+- Backend runs with:
+	- `uvicorn main:app --host 0.0.0.0 --port ${PORT}`
+- Frontend runs with:
+	- `next start -p ${PORT}`
+- If CORS fails, verify backend `FRONTEND_URL` matches frontend domain exactly.
 4. Click **Send Request** on a driver
 5. Open an incognito window, **register** as a **driver** (`driver1@example.com` / `password123`)
 6. Go to **Incoming Requests** → **Accept**
