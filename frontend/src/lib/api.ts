@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('[TraX] WARNING: NEXT_PUBLIC_API_URL is not set — falling back to http://localhost:8000. Set this variable in Railway to your backend URL.');
+}
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
