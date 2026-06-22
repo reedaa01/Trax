@@ -8,7 +8,7 @@ const nextConfig = {
     return [
       {
         source: '/api/backend/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://https://trax-production-a3cd.up.railway.app:8000'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://trax-production-a3cd.up.railway.app:8000'}/:path*`,
       },
     ];
   },
