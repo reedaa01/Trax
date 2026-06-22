@@ -33,7 +33,8 @@ type FormValues = z.infer<typeof schema>;
 function RegisterForm() {
   const { register: registerUser } = useAuth();
   const params = useSearchParams();
-  const defaultRole = (params.get('role') as UserRole) || 'client';
+  const roleParam = params.get('role') as UserRole;
+  const defaultRole: 'client' | 'driver' = (roleParam === 'client' || roleParam === 'driver') ? roleParam : 'client';
   const [apiError, setApiError] = useState('');
   const [driverCity, setDriverCity] = useState('');
 
