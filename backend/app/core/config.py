@@ -46,11 +46,19 @@ class Settings(BaseSettings):
     def __init__(self, **data):
         super().__init__(**data)
         railway_mysql_url = os.getenv("MYSQL_URL") or os.getenv("MYSQL_PUBLIC_URL")
-        running_on_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or railway_mysql_url)
+        running_on_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
 
-        if running_on_railway and (not self.DATABASE_URL or "localhost" in self.DATABASE_URL or "mysql:3306" in self.DATABASE_URL):
-            if railway_mysql_url:
-                self.DATABASE_URL = railway_mysql_url
+        if running_on_railway:
+            # On Railway: MUST have MySQL plugin providing MYSQL_URL or MYSQL_PUBLIC_URL
+            if not railway_mysql_url:
+                raise ValueError(
+                    "Running on Railway but MYSQL_URL or MYSQL_PUBLIC_URL environment variable not set. "
+                    "Ensure the MySQL plugin is added and linked to this backend service in Railway dashboard."
+                )
+            self.DATABASE_URL = railway_mysql_url
+        # Local dev: use Railway URL if provided, otherwise use .env or default
+        elif railway_mysql_url:
+            self.DATABASE_URL = railway_mysql_url
 
         self.DATABASE_URL = _normalize_database_url(self.DATABASE_URL)
 
