@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb"
+    DATABASE_URL: str = "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway"
 
     def __init__(self, **data):
         super().__init__(**data)
