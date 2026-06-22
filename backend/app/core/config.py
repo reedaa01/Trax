@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://reda:Reda2001%40@localhost:3306/trax"
+    DATABASE_URL: str = "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway"
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     # CORS
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "https://harmonious-tranquility-production-e460.up.railway.app"
 
 @lru_cache()
 def get_settings() -> Settings:
