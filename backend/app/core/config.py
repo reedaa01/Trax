@@ -41,21 +41,21 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # Database
-    DATABASE_URL: str = ""
+    DATABASE_URL: str = "mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb"
 
     def __init__(self, **data):
         super().__init__(**data)
         railway_mysql_url = os.getenv("MYSQL_URL") or os.getenv("MYSQL_PUBLIC_URL")
         running_on_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or railway_mysql_url)
 
-        if running_on_railway and (not self.DATABASE_URL or "localhost" in self.DATABASE_URL):
+        if running_on_railway and (not self.DATABASE_URL or "localhost" in self.DATABASE_URL or "mysql:3306" in self.DATABASE_URL):
             if railway_mysql_url:
                 self.DATABASE_URL = railway_mysql_url
 
         self.DATABASE_URL = _normalize_database_url(self.DATABASE_URL)
 
     # JWT
-    SECRET_KEY: str = ""  # MUST SET IN RAILWAY ENVIRONMENT VARIABLES
+    SECRET_KEY: str = "dev-key-not-for-production"  # MUST SET IN RAILWAY ENVIRONMENT VARIABLES
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
