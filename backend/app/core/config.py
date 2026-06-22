@@ -45,20 +45,38 @@ class Settings(BaseSettings):
 
     def __init__(self, **data):
         super().__init__(**data)
-        railway_mysql_url = os.getenv("MYSQL_URL") or os.getenv("MYSQL_PUBLIC_URL")
         running_on_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
+        
+        # Railway MySQL plugin provides credentials via env vars
+        railway_db_url = (
+            os.getenv("MYSQL_URL")  
+            or os.getenv("MYSQL_PUBLIC_URL")
+            or os.getenv("DATABASE_URL_MYSQL")
+        )
+        
+        # Check if DATABASE_URL env var was explicitly set (will be in 'data' dict)
+        env_database_url = os.getenv("DATABASE_URL")
 
         if running_on_railway:
-            # On Railway: MUST have MySQL plugin providing MYSQL_URL or MYSQL_PUBLIC_URL
-            if not railway_mysql_url:
-                raise ValueError(
-                    "Running on Railway but MYSQL_URL or MYSQL_PUBLIC_URL environment variable not set. "
-                    "Ensure the MySQL plugin is added and linked to this backend service in Railway dashboard."
+            # Priority: railway-specific vars > explicit DATABASE_URL env > fall back to defaults
+            if railway_db_url:
+                self.DATABASE_URL = railway_db_url
+            elif env_database_url and env_database_url != "mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb":
+                # DATABASE_URL was explicitly set to something other than docker-compose default
+                self.DATABASE_URL = env_database_url
+            else:
+                # Still no valid database URL found
+                import sys
+                print(
+                    "\n⚠️  WARNING: Running on Railway but no database URL environment variables found.\n"
+                    "   Expected one of: MYSQL_URL, MYSQL_PUBLIC_URL, DATABASE_URL, DATABASE_URL_MYSQL\n"
+                    "   If MySQL plugin just linked: wait 1-2 minutes and redeploy.\n"
+                    "   Otherwise: Check Railway Variables tab that MySQL is linked.\n",
+                    file=sys.stderr
                 )
-            self.DATABASE_URL = railway_mysql_url
-        # Local dev: use Railway URL if provided, otherwise use .env or default
-        elif railway_mysql_url:
-            self.DATABASE_URL = railway_mysql_url
+        elif railway_db_url:
+            # Local dev with Railway MySQL URL available
+            self.DATABASE_URL = railway_db_url
 
         self.DATABASE_URL = _normalize_database_url(self.DATABASE_URL)
 
