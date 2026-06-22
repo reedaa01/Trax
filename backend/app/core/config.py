@@ -61,7 +61,7 @@ class Settings(BaseSettings):
             # Priority: railway-specific vars > explicit DATABASE_URL env > fall back to defaults
             if railway_db_url:
                 self.DATABASE_URL = railway_db_url
-            elif env_database_url and env_database_url != "mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb":
+            elif env_database_url and env_database_url != "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway":
                 # DATABASE_URL was explicitly set to something other than docker-compose default
                 self.DATABASE_URL = env_database_url
             else:
