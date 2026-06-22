@@ -1,8 +1,10 @@
-services :
+services:
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - backend
   
@@ -10,29 +12,8 @@ services :
     build: ./backend
     ports:
       - "8000:8000"
-    depends_on:
-      mysql:
-        condition: service_healthy
     environment:
-      DATABASE_URL: mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb
-  mysql: 
-    image: mysql:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: traxdb
-      MYSQL_USER: traxuser
-      MYSQL_PASSWORD: traxpassword
-    ports:
-      - "3306:3306" 
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "traxuser", "-ptraxpassword"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-volumes:
-  mysql-data:
-
-  
-    
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://traxuser:traxpassword@localhost:3306/traxdb}
+      SECRET_KEY: ${SECRET_KEY:-dev-key-not-for-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      DEBUG: ${DEBUG:-false}

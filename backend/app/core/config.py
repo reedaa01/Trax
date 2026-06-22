@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway"
+    DATABASE_URL: str = ""
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -55,12 +55,12 @@ class Settings(BaseSettings):
         self.DATABASE_URL = _normalize_database_url(self.DATABASE_URL)
 
     # JWT
-    SECRET_KEY: str = "change-me-in-production-use-256bit-random-key"
+    SECRET_KEY: str = ""  # MUST SET IN RAILWAY ENVIRONMENT VARIABLES
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     # CORS
-    FRONTEND_URL: str = "https://harmonious-tranquility-production-e460.up.railway.app"
+    FRONTEND_URL: str = ""  # MUST SET IN RAILWAY ENVIRONMENT VARIABLES
 
 @lru_cache()
 def get_settings() -> Settings:
