@@ -5,10 +5,15 @@ const nextConfig = {
     root: __dirname,
   },
   async rewrites() {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
+    if (!apiBase) {
+      return [];
+    }
+
     return [
       {
         source: '/api/backend/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://trax-production-3d14.up.railway.app:8000'}/:path*`,
+        destination: `${apiBase}/:path*`,
       },
     ];
   },
