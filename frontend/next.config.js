@@ -4,6 +4,17 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Testing override: avoid browser default strict-origin-when-cross-origin
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
     if (!apiBase) {
