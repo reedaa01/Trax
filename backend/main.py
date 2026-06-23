@@ -26,11 +26,19 @@ app = FastAPI(
 
 allowed_origins = []
 if settings.FRONTEND_URL.strip():
-    allowed_origins.append(settings.FRONTEND_URL.strip().rstrip('/'))
+    # Supports one origin or comma-separated origins in FRONTEND_URL.
+    for origin in settings.FRONTEND_URL.split(","):
+        cleaned = origin.strip().rstrip("/")
+        if cleaned:
+            allowed_origins.append(cleaned)
 allowed_origins.extend([
     "http://localhost:3000",
     "https://localhost:3000",
+    "https://trax-maroc.up.railway.app",
 ])
+
+# Deduplicate while preserving order.
+allowed_origins = list(dict.fromkeys(allowed_origins))
 
 # CORS — restrict to the configured frontend origin in production
 app.add_middleware(
