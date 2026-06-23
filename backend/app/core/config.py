@@ -41,38 +41,26 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway"
+    DATABASE_URL: str = "mysql+pymysql://traxuser:traxpassword@mysql:3306/traxdb"
 
     def __init__(self, **data):
         super().__init__(**data)
         running_on_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
-        
-        # Railway MySQL plugin provides credentials via env vars
+        # Railway MySQL plugin provides credentials via these env vars.
         railway_db_url = (
-            os.getenv("MYSQL_URL")  
+            os.getenv("MYSQL_URL")
             or os.getenv("MYSQL_PUBLIC_URL")
+            or os.getenv("DATABASE_URL")
             or os.getenv("DATABASE_URL_MYSQL")
         )
-        
-        # Check if DATABASE_URL env var was explicitly set (will be in 'data' dict)
-        env_database_url = os.getenv("DATABASE_URL")
 
         if running_on_railway:
-            # Priority: railway-specific vars > explicit DATABASE_URL env > fall back to defaults
             if railway_db_url:
                 self.DATABASE_URL = railway_db_url
-            elif env_database_url and env_database_url != "mysql+pymysql://root:vkYwgQqsuPwqVkPUPRhchmJCEkxPUmES@yamanote.proxy.rlwy.net:49668/railway":
-                # DATABASE_URL was explicitly set to something other than docker-compose default
-                self.DATABASE_URL = env_database_url
             else:
-                # Still no valid database URL found
-                import sys
-                print(
-                    "\n⚠️  WARNING: Running on Railway but no database URL environment variables found.\n"
-                    "   Expected one of: MYSQL_URL, MYSQL_PUBLIC_URL, DATABASE_URL, DATABASE_URL_MYSQL\n"
-                    "   If MySQL plugin just linked: wait 1-2 minutes and redeploy.\n"
-                    "   Otherwise: Check Railway Variables tab that MySQL is linked.\n",
-                    file=sys.stderr
+                raise ValueError(
+                    "Running on Railway but no database URL variable found. "
+                    "Expected MYSQL_URL, MYSQL_PUBLIC_URL, DATABASE_URL, or DATABASE_URL_MYSQL."
                 )
         elif railway_db_url:
             # Local dev with Railway MySQL URL available

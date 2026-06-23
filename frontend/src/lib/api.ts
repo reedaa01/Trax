@@ -2,12 +2,16 @@ import axios from 'axios';
 
 const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || '').trim();
 const loweredApiUrl = rawApiUrl.toLowerCase();
+const isProd = process.env.NODE_ENV === 'production';
 
 if (loweredApiUrl.startsWith('mysql://') || loweredApiUrl.startsWith('mysql+pymysql://')) {
   throw new Error('[TraX] NEXT_PUBLIC_API_URL is invalid: it points to MySQL. Use your backend HTTP URL (https://...up.railway.app).');
 }
 
 if (!rawApiUrl) {
+  if (isProd) {
+    throw new Error('[TraX] NEXT_PUBLIC_API_URL is required in production. Set it to your Railway backend URL.');
+  }
   console.warn('[TraX] WARNING: NEXT_PUBLIC_API_URL is not set — falling back to http://localhost:8000. Set this variable in Railway to your backend URL.');
 }
 
