@@ -47,7 +47,7 @@ export default function LoginPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
-        <p className="text-gray-500 text-sm mb-8">Sign in to your TraX account</p>
+        <p className="text-gray-500 text-sm mb-8">Sign in to your ShipX account</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>

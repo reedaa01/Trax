@@ -38,7 +38,7 @@ export default function HomePage() {
             <span className="text-brand-600">drivers you trust.</span>
           </h1>
           <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-            TraX connects businesses with verified truck drivers instantly.
+            ShipX connects businesses with verified truck drivers instantly.
             Real-time matching, AI-powered pricing, full transparency.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -107,7 +107,7 @@ export default function HomePage() {
       {/* How it works */}
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">How TraX works</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">How ShipX works</h2>
           <div className="space-y-6">
             {[
               { step: '01', title: 'Post your shipment', desc: 'Enter pickup, destination, date, and cargo details.' },
@@ -129,7 +129,7 @@ export default function HomePage() {
       {/* CTA */}
       <section className="py-20 px-4 bg-gradient-to-br from-brand-700 to-brand-900 text-center">
         <h2 className="text-4xl font-extrabold text-white mb-4">Ready to move smarter?</h2>
-        <p className="text-brand-200 mb-8 text-lg">Join thousands of businesses and drivers on TraX today.</p>
+        <p className="text-brand-200 mb-8 text-lg">Join thousands of businesses and drivers on ShipX today.</p>
         <Link href="/auth/register" className="inline-flex items-center gap-2 bg-white text-brand-700 font-bold py-3 px-8 rounded-xl hover:bg-brand-50 transition-colors text-base">
           Start for free <ArrowRight className="h-5 w-5" />
         </Link>
@@ -141,9 +141,9 @@ export default function HomePage() {
           <div className="bg-brand-600 p-1 rounded">
             <Truck className="h-4 w-4 text-white" />
           </div>
-          <span className="font-semibold text-gray-700">TraX</span>
+          <span className="font-semibold text-gray-700">ShipX</span>
         </div>
-        <p>© {new Date().getFullYear()} TraX Transport Platform. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} ShipX Transport Platform. All rights reserved.</p>
       </footer>
     </div>
   );

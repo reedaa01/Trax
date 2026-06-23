@@ -1,7 +1,7 @@
 {
   "name": "trax",
   "version": "1.0.0",
-  "description": "TraX - Transport Platform SaaS",
+  "description": "ShipX - Transport Platform SaaS",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

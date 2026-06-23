@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TraX – Truck Transport Platform',
+  title: 'ShipX – Truck Transport Platform',
   description: 'Connect clients with professional truck drivers. Fast, reliable, transparent.',
 };
 

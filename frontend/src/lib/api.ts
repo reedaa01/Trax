@@ -5,14 +5,14 @@ const loweredApiUrl = rawApiUrl.toLowerCase();
 const isProd = process.env.NODE_ENV === 'production';
 
 if (loweredApiUrl.startsWith('mysql://') || loweredApiUrl.startsWith('mysql+pymysql://')) {
-  throw new Error('[TraX] NEXT_PUBLIC_API_URL is invalid: it points to MySQL. Use your backend HTTP URL (https://...up.railway.app).');
+  throw new Error('[ShipX] NEXT_PUBLIC_API_URL is invalid: it points to MySQL. Use your backend HTTP URL (https://...up.railway.app).');
 }
 
 if (!rawApiUrl) {
   if (isProd) {
-    throw new Error('[TraX] NEXT_PUBLIC_API_URL is required in production. Set it to your Railway backend URL.');
+    throw new Error('[ShipX] NEXT_PUBLIC_API_URL is required in production. Set it to your Railway backend URL.');
   }
-  console.warn('[TraX] WARNING: NEXT_PUBLIC_API_URL is not set — falling back to http://localhost:8000. Set this variable in Railway to your backend URL.');
+  console.warn('[ShipX] WARNING: NEXT_PUBLIC_API_URL is not set — falling back to http://localhost:8000. Set this variable in Railway to your backend URL.');
 }
 
 const API_BASE = (rawApiUrl || 'http://localhost:8000')

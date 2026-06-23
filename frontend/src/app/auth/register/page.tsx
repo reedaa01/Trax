@@ -92,7 +92,7 @@ function RegisterForm() {
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
-        <p className="text-gray-500 text-sm mb-6">Join TraX - it is free to get started</p>
+        <p className="text-gray-500 text-sm mb-6">Join ShipX - it is free to get started</p>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           {(['client', 'driver'] as const).map((role) => (
